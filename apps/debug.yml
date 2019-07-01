@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: debug
-          image: infoblox/dnstools:latest
+          image: infoblox/dnstools:v3
           command:
             - sleep
             - '150000000'

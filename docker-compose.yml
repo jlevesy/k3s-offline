@@ -14,15 +14,11 @@ networks:
         - subnet: "172.16.238.0/24"
 
 services:
-  # Inner networks cannot have any port forwarded directly.
-  # Service forwarding TCP traffic received on port 6443
-  # to the server on port 6443.
   gateway:
     image: traefik:v2.0.0-alpha8
     command:
       - "--api"
       - "--providers.docker"
-      - "--log.level=DEBUG"
       - "--entryPoints.http.address=:80"
       - "--entryPoints.https.address=:443"
       - "--entryPoints.kubeapi.address=:6443"
@@ -71,6 +67,15 @@ services:
       - /run
       - /var/run
     privileged: true
+    labels:
+      - traefik.tcp.routers.http.rule=HostSNI(`*`)
+      - traefik.tcp.routers.http.entrypoints=http
+      - traefik.tcp.routers.http.service=http
+      - traefik.tcp.services.http.loadbalancer.server.port=80
+      - traefik.tcp.routers.https.rule=HostSNI(`*`)
+      - traefik.tcp.routers.https.entrypoints=https
+      - traefik.tcp.routers.https.service=https
+      - traefik.tcp.services.https.loadbalancer.server.port=443
     depends_on:
       - server
     environment:

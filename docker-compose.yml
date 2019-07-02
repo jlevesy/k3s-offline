@@ -17,19 +17,22 @@ services:
   # Inner networks cannot have any port forwarded directly.
   # Service forwarding TCP traffic received on port 6443
   # to the server on port 6443.
-  kubegateway:
-    image: alpine:3.10.0
-    ports:
-      - 6443:6443
+  gateway:
+    image: traefik:v2.0.0-alpha8
     command:
-      - "nc"
-      - "-lk"
-      - "-p"
-      - "6443"
-      - "-e"
-      - "/usr/bin/nc"
-      - "server"
-      - "6443"
+      - "--api"
+      - "--providers.docker"
+      - "--log.level=DEBUG"
+      - "--entryPoints.http.address=:80"
+      - "--entryPoints.https.address=:443"
+      - "--entryPoints.kubeapi.address=:6443"
+    ports:
+      - "6443:6443"
+      - "8080:8080"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - outer
       - inner
@@ -46,6 +49,11 @@ services:
   server:
     image: rancher/k3s:v0.6.1
     command: server --disable-agent -no-deploy traefik
+    labels:
+      - traefik.tcp.routers.kube-apiserver.rule=HostSNI(`*`)
+      - traefik.tcp.routers.kube-apiserver.entrypoints=kubeapi
+      - traefik.tcp.routers.kube-apiserver.service=kube-apiserver
+      - traefik.tcp.services.kube-apiserver.loadbalancer.server.port=6443
     environment:
       - K3S_CLUSTER_SECRET=somethingtotallyrandom
       - K3S_KUBECONFIG_OUTPUT=/output/kubeconfig.yaml
@@ -54,8 +62,6 @@ services:
       - k3s-server:/var/lib/rancher/k3s
       # This is just so that we get the kubeconfig file out
       - ./output:/output
-    ports:
-      - 6443:6443
     networks:
       - inner
 

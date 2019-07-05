@@ -18,6 +18,13 @@ spec:
       containers:
         - name: debug
           image: infoblox/dnstools:v3
+          env:
+            - name: HTTP_PROXY
+              value: http://172.16.238.50:3128
+            - name: HTTPS_PROXY
+              value: http://172.16.238.50:3128
+            - name: NO_PROXY
+              value: 10.43.0.1
           command:
             - sleep
             - '150000000'
